@@ -1,6 +1,7 @@
 import { Plus, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import type { TodoItem } from "../types";
 import { TodoCard } from "./TodoCard";
 
@@ -138,13 +139,22 @@ export function KanbanColumn({
                   {items.length}
                </span>
             </div>
-            <button
+            {/* Only show add button for todo and habits columns */}
+            <Button
+               variant="ghost"
+               size="icon"
                onClick={onAddItem}
-               className="p-1 hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+               className={cn(
+                  "h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer",
+                  {
+                     "opacity-0 pointer-events-none": type !== "todo" && type !== "habits"
+                  }
+               )}
                aria-label={`Add item to ${title}`}
             >
-               <Plus size={14} />
-            </button>
+                  <Plus size={14} />
+            </Button>
+
          </div>
 
          {/* Column Content */}

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Header } from "./components/Header";
 import { KanbanBoard } from "./components/KanbanBoard";
+import { CreateTodoModal } from "./components/CreateTodoModal";
+import { CreateHabitModal } from "./components/CreateHabitModal";
 import type { KanbanBoard as KanbanBoardType, TodoItem } from "./types";
 import type { ColumnType } from "./components/KanbanColumn";
 
@@ -175,14 +177,60 @@ const initialBoard: KanbanBoardType = {
 export default function App() {
    const [board, setBoard] = useState<KanbanBoardType>(initialBoard);
    const [searchQuery, setSearchQuery] = useState("");
+   const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
+   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
 
    const handleSearch = (query: string) => {
       setSearchQuery(query);
    };
 
    const handleAddItem = (columnType: ColumnType) => {
-      // TODO: Implement add item modal/form
-      console.log("Add item to:", columnType);
+      if (columnType === "todo") {
+         setIsTodoModalOpen(true);
+      } else if (columnType === "habits") {
+         setIsHabitModalOpen(true);
+      }
+   };
+
+   const handleCreateTodo = (todoData: {
+      title: string;
+      description?: string;
+      dueDate?: string;
+   }) => {
+      const newTodo: TodoItem = {
+         id: crypto.randomUUID(),
+         title: todoData.title,
+         description: todoData.description,
+         dueDate: todoData.dueDate,
+         createdAt: new Date().toISOString(),
+         updatedAt: new Date().toISOString(),
+      };
+
+      setBoard((prev) => ({
+         ...prev,
+         todo: [...prev.todo, newTodo],
+      }));
+   };
+
+   const handleCreateHabit = (habitData: {
+      title: string;
+      description?: string;
+      frequency: "daily" | "weekly" | "custom";
+      customDays?: number[];
+   }) => {
+      const newHabit: TodoItem = {
+         id: crypto.randomUUID(),
+         title: habitData.title,
+         description: habitData.description,
+         streak: 0,
+         createdAt: new Date().toISOString(),
+         updatedAt: new Date().toISOString(),
+      };
+
+      setBoard((prev) => ({
+         ...prev,
+         habits: [...prev.habits, newHabit],
+      }));
    };
 
    const handleItemClick = (item: TodoItem) => {
@@ -234,6 +282,20 @@ export default function App() {
                onItemClick={handleItemClick}
             />
          </main>
+
+         {/* Todo Creation Modal */}
+         <CreateTodoModal
+            open={isTodoModalOpen}
+            onOpenChange={setIsTodoModalOpen}
+            onSubmit={handleCreateTodo}
+         />
+
+         {/* Habit Creation Modal */}
+         <CreateHabitModal
+            open={isHabitModalOpen}
+            onOpenChange={setIsHabitModalOpen}
+            onSubmit={handleCreateHabit}
+         />
       </div>
    );
 }
