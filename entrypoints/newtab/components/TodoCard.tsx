@@ -36,11 +36,14 @@ function getActionConfig(columnType: ColumnType): { label: string; icon: typeof 
 export function TodoCard({ item, columnType, onClick }: TodoCardProps) {
    const { completeTodo, moveToTodo, restoreTodo, logHabitCompletion } = useTodoStore();
 
-   const actionConfig = getActionConfig(columnType);
-   const ActionIcon = actionConfig.icon;
-
    // Check if habit is already completed today
    const isHabitCompleted = columnType === "habits" && item.status === "completed";
+
+   const actionConfig = isHabitCompleted
+      ? { label: "Restore", icon: RotateCcw }
+      : getActionConfig(columnType);
+
+   const ActionIcon = actionConfig.icon;
 
    async function handleAction() {
       switch (columnType) {
@@ -51,7 +54,9 @@ export function TodoCard({ item, columnType, onClick }: TodoCardProps) {
             await completeTodo(item.id);
             break;
          case "habits":
-            if (!isHabitCompleted) {
+            if (isHabitCompleted) {
+               await restoreTodo(item.id);
+            } else {
                await logHabitCompletion(item.id);
             }
             break;
@@ -118,37 +123,27 @@ export function TodoCard({ item, columnType, onClick }: TodoCardProps) {
             </div>
          )}
 
-         {/* Hover Action Button - Hidden for completed habits */}
-         {!isHabitCompleted && (
-            <Button
-               variant="ghost"
-               size="sm"
-               onClick={(e) => {
-                  e.stopPropagation();
-                  handleAction();
-               }}
-               className={cn(
-                  "w-full mt-2 h-7 text-[11px] font-medium tracking-tight cursor-pointer",
-                  "bg-primary/5 border border-primary/20 text-primary",
-                  "hover:bg-primary/10 hover:border-primary/30 hover:text-primary",
-                  "opacity-0 max-h-0 overflow-hidden",
-                  "group-hover:opacity-100 group-hover:max-h-10",
-                  "transition-all duration-200 ease-out"
-               )}
-               aria-label={actionConfig.label}
-            >
-               <ActionIcon size={12} />
-               {actionConfig.label}
-            </Button>
-         )}
-
-         {/* Completed indicator for habits */}
-         {isHabitCompleted && (
-            <div className="flex items-center justify-center gap-1 mt-2 pt-2 border-t border-border/50 text-green-500">
-               <Check size={12} />
-               <span className="text-[10px] font-medium">Completed today</span>
-            </div>
-         )}
+         {/* Hover Action Button */}
+         <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+               e.stopPropagation();
+               handleAction();
+            }}
+            className={cn(
+               "w-full mt-2 h-7 text-[11px] font-medium tracking-tight cursor-pointer",
+               "bg-primary/5 border border-primary/20 text-primary",
+               "hover:bg-primary/10 hover:border-primary/30 hover:text-primary",
+               "opacity-0 max-h-0 overflow-hidden",
+               "group-hover:opacity-100 group-hover:max-h-10",
+               "transition-all duration-200 ease-out"
+            )}
+            aria-label={actionConfig.label}
+         >
+            <ActionIcon size={12} />
+            {actionConfig.label}
+         </Button>
       </div>
    );
 }
