@@ -1,245 +1,159 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Header } from "./components/Header";
 import { KanbanBoard } from "./components/KanbanBoard";
 import { CreateTodoModal } from "./components/CreateTodoModal";
 import { CreateHabitModal } from "./components/CreateHabitModal";
-import type { KanbanBoard as KanbanBoardType, TodoItem } from "./types";
+import { useTodoStore } from "./store/todoStore";
+import type { Todo, Habit } from "./store/types";
 import type { ColumnType } from "./components/KanbanColumn";
 
-// Sample data to demonstrate the UI
-const initialBoard: KanbanBoardType = {
-   backlogs: [
-      // Today
-      {
-         id: "1",
-         title: "Research new task management patterns",
-         description: "Look into different approaches for organizing tasks in productivity apps",
-         priority: "low",
-         tags: ["research"],
-         createdAt: new Date().toISOString(),
-         updatedAt: new Date().toISOString(),
-      },
-      {
-         id: "2",
-         title: "Design system documentation",
-         description: "Document all design tokens and component usage guidelines",
-         priority: "medium",
-         tags: ["docs", "design"],
-         createdAt: new Date().toISOString(),
-         updatedAt: new Date().toISOString(),
-      },
-      {
-         id: "11",
-         title: "Review API endpoints",
-         description: "Check all REST endpoints for consistency",
-         priority: "high",
-         tags: ["api"],
-         createdAt: new Date().toISOString(),
-         updatedAt: new Date().toISOString(),
-      },
-      // Yesterday
-      {
-         id: "12",
-         title: "Refactor authentication flow",
-         description: "Clean up the login and signup logic",
-         priority: "high",
-         tags: ["auth", "refactor"],
-         createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-         updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-         id: "13",
-         title: "Add error boundaries",
-         description: "Implement React error boundaries for better error handling",
-         priority: "medium",
-         tags: ["error-handling"],
-         createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-         updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      // 3 days ago
-      {
-         id: "14",
-         title: "Setup CI/CD pipeline",
-         description: "Configure GitHub Actions for automated testing and deployment",
-         priority: "medium",
-         tags: ["devops"],
-         createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-         updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-         id: "15",
-         title: "Database optimization",
-         description: "Add indexes and optimize slow queries",
-         priority: "low",
-         tags: ["database", "performance"],
-         createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-         updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      // A week ago
-      {
-         id: "16",
-         title: "Write unit tests",
-         description: "Increase test coverage to at least 80%",
-         priority: "medium",
-         tags: ["testing"],
-         createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-         updatedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-         id: "17",
-         title: "Mobile responsive design",
-         description: "Ensure all components work well on mobile devices",
-         priority: "high",
-         tags: ["mobile", "design"],
-         createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-         updatedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-   ],
-   todo: [
-      {
-         id: "3",
-         title: "Implement drag and drop",
-         description: "Add drag and drop functionality for moving tasks between columns",
-         priority: "high",
-         tags: ["feature"],
-         dueDate: "Jan 20",
-         createdAt: new Date().toISOString(),
-         updatedAt: new Date().toISOString(),
-      },
-      {
-         id: "4",
-         title: "Add keyboard shortcuts",
-         description: "Implement keyboard navigation and shortcuts for power users",
-         priority: "medium",
-         tags: ["ux"],
-         createdAt: new Date().toISOString(),
-         updatedAt: new Date().toISOString(),
-      },
-   ],
-   habits: [
-      {
-         id: "5",
-         title: "Morning meditation",
-         description: "10 minutes of mindfulness every morning",
-         streak: 15,
-         tags: ["wellness"],
-         createdAt: new Date().toISOString(),
-         updatedAt: new Date().toISOString(),
-      },
-      {
-         id: "6",
-         title: "Daily code review",
-         description: "Review at least one PR every day",
-         streak: 7,
-         tags: ["dev"],
-         createdAt: new Date().toISOString(),
-         updatedAt: new Date().toISOString(),
-      },
-      {
-         id: "7",
-         title: "Read for 30 minutes",
-         streak: 23,
-         tags: ["learning"],
-         createdAt: new Date().toISOString(),
-         updatedAt: new Date().toISOString(),
-      },
-   ],
-   completed: [
-      {
-         id: "8",
-         title: "Set up project structure",
-         description: "Initialize WXT extension with React and Tailwind",
-         tags: ["setup"],
-         createdAt: new Date().toISOString(),
-         updatedAt: new Date().toISOString(),
-      },
-      {
-         id: "9",
-         title: "Configure theme system",
-         description: "Set up CSS variables and design tokens for the brutalist theme",
-         tags: ["design"],
-         createdAt: new Date().toISOString(),
-         updatedAt: new Date().toISOString(),
-      },
-   ],
-   discarded: [
-      {
-         id: "10",
-         title: "Complex animation system",
-         description: "Over-engineered animation system that was not needed",
-         tags: ["deprecated"],
-         createdAt: new Date().toISOString(),
-         updatedAt: new Date().toISOString(),
-      },
-   ],
-};
+// Derive kanban board structure from store state
+interface KanbanBoardData {
+   backlogs: TodoWithStreak[];
+   todo: TodoWithStreak[];
+   habits: TodoWithStreak[];
+   completed: TodoWithStreak[];
+   discarded: TodoWithStreak[];
+}
+
+// Extended todo type that includes streak for habits display
+interface TodoWithStreak extends Todo {
+   streak?: number;
+}
+
+function deriveBoard(todos: Todo[], habits: Habit[]): KanbanBoardData {
+   const todayDate = new Date().toISOString().split("T")[0];
+
+   // Create a map of habit streaks
+   const habitStreakMap = new Map(habits.map((h) => [h.id, h.streak]));
+
+   // Separate todos by status
+   const backlogs: TodoWithStreak[] = [];
+   const todoItems: TodoWithStreak[] = [];
+   const habitTodos: TodoWithStreak[] = [];
+   const completed: TodoWithStreak[] = [];
+   const discarded: TodoWithStreak[] = [];
+
+   for (const todo of todos) {
+      const todoWithStreak: TodoWithStreak = { ...todo };
+
+      // Add streak info for habit todos
+      if (todo.habitId) {
+         todoWithStreak.streak = habitStreakMap.get(todo.habitId) || 0;
+      }
+
+      switch (todo.status) {
+         case "backlog":
+            backlogs.push(todoWithStreak);
+            break;
+         case "todo":
+            // Habit todos go to habits column, regular todos go to todo column
+            if (todo.habitId && todo.originalDate === todayDate) {
+               habitTodos.push(todoWithStreak);
+            } else {
+               todoItems.push(todoWithStreak);
+            }
+            break;
+         case "completed":
+            // Completed habit todos go to habits column (for today), others to completed
+            if (todo.habitId && todo.originalDate === todayDate) {
+               habitTodos.push(todoWithStreak);
+            } else {
+               completed.push(todoWithStreak);
+            }
+            break;
+         case "discarded":
+            discarded.push(todoWithStreak);
+            break;
+      }
+   }
+
+   return {
+      backlogs,
+      todo: todoItems,
+      habits: habitTodos,
+      completed,
+      discarded,
+   };
+}
 
 export default function App() {
-   const [board, setBoard] = useState<KanbanBoardType>(initialBoard);
+   const {
+      todos,
+      habits,
+      isLoading,
+      isHydrated,
+      showTomorrowModal,
+      setShowTomorrowModal,
+      dismissTomorrowModal,
+      hydrate,
+      createTodo,
+      createHabit,
+   } = useTodoStore();
+
    const [searchQuery, setSearchQuery] = useState("");
    const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
    const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
 
-   const handleSearch = (query: string) => {
-      setSearchQuery(query);
-   };
+   // Hydrate store on mount
+   useEffect(() => {
+      if (!isHydrated) {
+         hydrate();
+      }
+   }, [isHydrated, hydrate]);
 
-   const handleAddItem = (columnType: ColumnType) => {
+   // Check tomorrow modal trigger periodically
+   useEffect(() => {
+      const checkInterval = setInterval(() => {
+         useTodoStore.getState().checkTomorrowModalTrigger();
+      }, 60000); // Check every minute
+
+      return () => clearInterval(checkInterval);
+   }, []);
+
+   // Derive board from store state
+   const board = useMemo(() => deriveBoard(todos, habits), [todos, habits]);
+
+   function handleSearch(query: string) {
+      setSearchQuery(query);
+   }
+
+   function handleAddItem(columnType: ColumnType) {
       if (columnType === "todo") {
          setIsTodoModalOpen(true);
       } else if (columnType === "habits") {
          setIsHabitModalOpen(true);
       }
-   };
+   }
 
-   const handleCreateTodo = (todoData: {
+   async function handleCreateTodo(todoData: {
       title: string;
       description?: string;
       dueDate?: string;
-   }) => {
-      const newTodo: TodoItem = {
-         id: crypto.randomUUID(),
-         title: todoData.title,
-         description: todoData.description,
-         dueDate: todoData.dueDate,
-         createdAt: new Date().toISOString(),
-         updatedAt: new Date().toISOString(),
-      };
+   }) {
+      await createTodo(todoData);
+   }
 
-      setBoard((prev) => ({
-         ...prev,
-         todo: [...prev.todo, newTodo],
-      }));
-   };
-
-   const handleCreateHabit = (habitData: {
+   async function handleCreateHabit(habitData: {
       title: string;
       description?: string;
-      frequency: "daily" | "weekly" | "custom";
+      frequency: "daily" | "custom";
       customDays?: number[];
-   }) => {
-      const newHabit: TodoItem = {
-         id: crypto.randomUUID(),
+   }) {
+      await createHabit({
          title: habitData.title,
          description: habitData.description,
-         streak: 0,
-         createdAt: new Date().toISOString(),
-         updatedAt: new Date().toISOString(),
-      };
+         frequency: habitData.frequency,
+         customDays: habitData.customDays,
+      });
+   }
 
-      setBoard((prev) => ({
-         ...prev,
-         habits: [...prev.habits, newHabit],
-      }));
-   };
-
-   const handleItemClick = (item: TodoItem) => {
-      // TODO: Implement item detail view
+   function handleItemClick(item: TodoWithStreak) {
       console.log("Clicked item:", item);
-   };
+   }
 
    // Filter board based on search query
-   const filteredBoard: KanbanBoardType = searchQuery
+   const filteredBoard: KanbanBoardData = searchQuery
       ? {
          backlogs: board.backlogs.filter(
             (item) =>
@@ -269,6 +183,15 @@ export default function App() {
       }
       : board;
 
+   // Show loading state
+   if (isLoading) {
+      return (
+         <div className="h-screen flex items-center justify-center bg-background dark">
+            <div className="text-muted-foreground">Loading...</div>
+         </div>
+      );
+   }
+
    return (
       <div className="h-screen flex flex-col bg-background dark">
          <Header
@@ -295,6 +218,15 @@ export default function App() {
             open={isHabitModalOpen}
             onOpenChange={setIsHabitModalOpen}
             onSubmit={handleCreateHabit}
+         />
+
+         {/* Tomorrow Planning Modal (9 PM) - Uses CreateTodoModal with tomorrowMode */}
+         <CreateTodoModal
+            open={showTomorrowModal}
+            onOpenChange={setShowTomorrowModal}
+            onSubmit={handleCreateTodo}
+            tomorrowMode
+            onDismiss={dismissTomorrowModal}
          />
       </div>
    );

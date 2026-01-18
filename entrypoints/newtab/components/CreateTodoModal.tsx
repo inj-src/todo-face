@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Moon } from "lucide-react";
 import {
    Dialog,
    DialogContent,
    DialogHeader,
    DialogTitle,
    DialogFooter,
+   DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +29,10 @@ interface CreateTodoModalProps {
       description?: string;
       dueDate?: string;
    }) => void;
+   /** When true, modal is for planning tomorrow's tasks (9 PM reminder) */
+   tomorrowMode?: boolean;
+   /** Called when user dismisses without adding todos (for reminder logic) */
+   onDismiss?: () => void;
 }
 
 // Helper to get today (midnight)
@@ -55,15 +60,6 @@ function getTomorrow(): Date {
    return tomorrow;
 }
 
-// Format date for display in shortcut buttons
-function formatDateForDisplay(date: Date): string {
-   return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-   });
-}
-
 // Check if two dates are the same day
 function isSameDay(date1: Date, date2: Date): boolean {
    return (
@@ -79,15 +75,25 @@ export function CreateTodoModal({
    open,
    onOpenChange,
    onSubmit,
+   tomorrowMode = false,
+   onDismiss,
 }: CreateTodoModalProps) {
    const today = getToday();
    const tomorrow = getTomorrow();
    const upcomingFriday = getUpcomingFriday();
 
+   // In tomorrow mode, default to tomorrow's date
+   const defaultDate = tomorrowMode ? tomorrow : today;
+
    const [title, setTitle] = useState("");
    const [description, setDescription] = useState("");
-   const [dueDate, setDueDate] = useState<Date>(today);
+   const [dueDate, setDueDate] = useState<Date>(defaultDate);
    const [calendarOpen, setCalendarOpen] = useState(false);
+
+   // Reset date when mode changes
+   useEffect(() => {
+      setDueDate(tomorrowMode ? getTomorrow() : getToday());
+   }, [tomorrowMode, open]);
 
    // Determine which shortcut is active based on the selected date
    function getActiveShortcut(): DateShortcut {
@@ -127,7 +133,7 @@ export function CreateTodoModal({
    function resetForm() {
       setTitle("");
       setDescription("");
-      setDueDate(getToday());
+      setDueDate(tomorrowMode ? getTomorrow() : getToday());
    }
 
    function handleSubmit(e: React.FormEvent) {
@@ -142,28 +148,45 @@ export function CreateTodoModal({
       });
 
       resetForm();
-      onOpenChange(false);
    }
 
    function handleClose() {
       resetForm();
+      onDismiss?.();
       onOpenChange(false);
    }
+
+   // Text customization for tomorrow mode
+   const modalTitle = tomorrowMode ? "Plan Tomorrow's Tasks" : "Create Todo";
+   const titleLabel = tomorrowMode ? "Task for tomorrow" : "Todo";
+   const titlePlaceholder = tomorrowMode
+      ? "What do you want to accomplish tomorrow?"
+      : "What needs to be done?";
+   const submitLabel = tomorrowMode ? "Add Task" : "Create Todo";
+   const cancelLabel = tomorrowMode ? "Skip for now" : "Cancel";
 
    return (
       <Dialog open={open} onOpenChange={handleClose}>
          <DialogContent className="sm:max-w-[520px]">
             <DialogHeader>
-               <DialogTitle className="text-lg font-semibold">Create Todo</DialogTitle>
+               <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+                  {tomorrowMode && <Moon size={20} className="text-primary" />}
+                  {modalTitle}
+               </DialogTitle>
+               {tomorrowMode && (
+                  <DialogDescription>
+                     It's getting late! Plan what you want to accomplish tomorrow.
+                  </DialogDescription>
+               )}
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-4 mt-2">
                {/* Todo Title */}
                <div className="space-y-2">
-                  <Label htmlFor="todo-title">Todo</Label>
+                  <Label htmlFor="todo-title">{titleLabel}</Label>
                   <Input
                      id="todo-title"
-                     placeholder="What needs to be done?"
+                     placeholder={titlePlaceholder}
                      value={title}
                      onChange={(e) => setTitle(e.target.value)}
                      autoFocus
@@ -186,61 +209,63 @@ export function CreateTodoModal({
                   />
                </div>
 
-               {/* Date Selection */}
-               <div className="space-y-2">
-                  <Label>Due Date</Label>
-                  <div className="flex gap-2 mb-2">
-                     <Button
-                        type="button"
-                        variant={selectedShortcut === "today" ? "default" : "outline"}
-                        className="flex-1"
-                        onClick={() => handleShortcutClick("today")}
-                     >
-                        Today
-                     </Button>
-                     <Button
-                        type="button"
-                        variant={selectedShortcut === "tomorrow" ? "default" : "outline"}
-                        className="flex-1"
-                        onClick={() => handleShortcutClick("tomorrow")}
-                     >
-                        Tomorrow
-                     </Button>
-                     <Button
-                        type="button"
-                        variant={selectedShortcut === "weekend" ? "default" : "outline"}
-                        className="flex-1"
-                        onClick={() => handleShortcutClick("weekend")}
-                     >
-                        Weekend
-                     </Button>
-                  </div>
-
-                  {/* Date Picker */}
-                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                     <PopoverTrigger asChild>
+               {/* Date Selection - Hidden in tomorrow mode */}
+               {!tomorrowMode && (
+                  <div className="space-y-2">
+                     <Label>Due Date</Label>
+                     <div className="flex gap-2 mb-2">
                         <Button
                            type="button"
-                           variant="outline"
-                           className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !dueDate && "text-muted-foreground"
-                           )}
+                           variant={selectedShortcut === "today" ? "default" : "outline"}
+                           className="flex-1"
+                           onClick={() => handleShortcutClick("today")}
                         >
-                           <CalendarIcon className="mr-2 h-4 w-4" />
-                           {dueDate ? format(dueDate, "PPP") : <span>Pick a date</span>}
+                           Today
                         </Button>
-                     </PopoverTrigger>
-                     <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                           mode="single"
-                           selected={dueDate}
-                           onSelect={handleDateSelect}
-                           initialFocus
-                        />
-                     </PopoverContent>
-                  </Popover>
-               </div>
+                        <Button
+                           type="button"
+                           variant={selectedShortcut === "tomorrow" ? "default" : "outline"}
+                           className="flex-1"
+                           onClick={() => handleShortcutClick("tomorrow")}
+                        >
+                           Tomorrow
+                        </Button>
+                        <Button
+                           type="button"
+                           variant={selectedShortcut === "weekend" ? "default" : "outline"}
+                           className="flex-1"
+                           onClick={() => handleShortcutClick("weekend")}
+                        >
+                           Weekend
+                        </Button>
+                     </div>
+
+                     {/* Date Picker */}
+                     <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                        <PopoverTrigger asChild>
+                           <Button
+                              type="button"
+                              variant="outline"
+                              className={cn(
+                                 "w-full justify-start text-left font-normal",
+                                 !dueDate && "text-muted-foreground"
+                              )}
+                           >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {dueDate ? format(dueDate, "PPP") : <span>Pick a date</span>}
+                           </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                           <Calendar
+                              mode="single"
+                              selected={dueDate}
+                              onSelect={handleDateSelect}
+                              initialFocus
+                           />
+                        </PopoverContent>
+                     </Popover>
+                  </div>
+               )}
 
                <DialogFooter>
                   <Button
@@ -248,12 +273,18 @@ export function CreateTodoModal({
                      variant="outline"
                      onClick={handleClose}
                   >
-                     Cancel
+                     {cancelLabel}
                   </Button>
                   <Button type="submit" disabled={!title.trim()}>
-                     Create Todo
+                     {submitLabel}
                   </Button>
                </DialogFooter>
+
+               {tomorrowMode && (
+                  <p className="text-xs text-muted-foreground text-center">
+                     Reminder will appear again in 30 minutes if you skip
+                  </p>
+               )}
             </form>
          </DialogContent>
       </Dialog>

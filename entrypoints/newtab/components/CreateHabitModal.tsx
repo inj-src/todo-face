@@ -10,9 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
-export type FrequencyType = "daily" | "weekly" | "custom";
+export type FrequencyType = "daily" | "custom";
 
 interface CreateHabitModalProps {
    open: boolean;

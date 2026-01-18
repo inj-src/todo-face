@@ -1,19 +1,23 @@
-import { Plus, Flame } from "lucide-react";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import type { TodoItem } from "../types";
+import type { Todo } from "../store/types";
 import { TodoCard } from "./TodoCard";
 
 export type ColumnType = "backlogs" | "todo" | "habits" | "completed" | "discarded";
 
+// Extended todo with optional streak for habits
+interface TodoWithStreak extends Todo {
+   streak?: number;
+}
+
 interface KanbanColumnProps {
    type: ColumnType;
    title: string;
-   items: TodoItem[];
+   items: TodoWithStreak[];
    onAddItem?: () => void;
-   onItemClick?: (item: TodoItem) => void;
-   onItemMove?: (item: TodoItem, targetColumn: ColumnType) => void;
+   onItemClick?: (item: TodoWithStreak) => void;
 }
 
 const columnConfig: Record<ColumnType, { dotColor: string; accentClass: string }> = {
@@ -77,14 +81,14 @@ function getDateKey(dateString: string): string {
 
 // Group items by date
 function groupItemsByDate(
-   items: TodoItem[],
+   items: TodoWithStreak[],
    columnType: ColumnType
-): Map<string, { displayDate: string; items: TodoItem[] }> {
-   const groups = new Map<string, { displayDate: string; items: TodoItem[] }>();
+): Map<string, { displayDate: string; items: TodoWithStreak[] }> {
+   const groups = new Map<string, { displayDate: string; items: TodoWithStreak[] }>();
 
    items.forEach((item) => {
-      // Use updatedAt for completed/discarded, createdAt for backlogs
-      const dateField = columnType === "backlogs" ? item.createdAt : item.updatedAt;
+      // Use updatedAt for completed/discarded, originalDate for backlogs
+      const dateField = columnType === "backlogs" ? item.originalDate : item.updatedAt;
       const dateKey = getDateKey(dateField);
       const displayDate = formatGroupDate(dateField);
 
@@ -100,7 +104,7 @@ function groupItemsByDate(
    );
 }
 
-// Date separator component (just shows label, no lines)
+// Date separator component
 function DateSeparator({ date }: { date: string }) {
    return (
       <div className="mt-4 mb-2 text-center">
@@ -163,7 +167,7 @@ export function KanbanColumn({
                {shouldGroupByDate && groupedItems ? (
                   // Render grouped items with date separators
                   <>
-                     {[...groupedItems.entries()].map(([dateKey, group], index) => (
+                     {[...groupedItems.entries()].map(([dateKey, group]) => (
                         <div key={dateKey}>
                            {/* Skip "Today" label, show labels for other dates */}
                            {group.displayDate !== "Today" && (

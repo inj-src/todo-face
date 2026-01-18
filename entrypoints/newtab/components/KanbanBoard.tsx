@@ -1,10 +1,23 @@
 import { KanbanColumn, type ColumnType } from "./KanbanColumn";
-import type { KanbanBoard as KanbanBoardType, TodoItem } from "../types";
+import type { Todo } from "../store/types";
+
+// Board data structure
+interface KanbanBoardData {
+   backlogs: TodoWithStreak[];
+   todo: TodoWithStreak[];
+   habits: TodoWithStreak[];
+   completed: TodoWithStreak[];
+   discarded: TodoWithStreak[];
+}
+
+interface TodoWithStreak extends Todo {
+   streak?: number;
+}
 
 interface KanbanBoardProps {
-   board: KanbanBoardType;
+   board: KanbanBoardData;
    onAddItem?: (columnType: ColumnType) => void;
-   onItemClick?: (item: TodoItem) => void;
+   onItemClick?: (item: TodoWithStreak) => void;
 }
 
 const columns: { type: ColumnType; title: string }[] = [
