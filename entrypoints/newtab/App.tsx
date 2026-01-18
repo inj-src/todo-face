@@ -7,6 +7,7 @@ import type { ColumnType } from "./components/KanbanColumn";
 // Sample data to demonstrate the UI
 const initialBoard: KanbanBoardType = {
    backlogs: [
+      // Today
       {
          id: "1",
          title: "Research new task management patterns",
@@ -24,6 +25,72 @@ const initialBoard: KanbanBoardType = {
          tags: ["docs", "design"],
          createdAt: new Date().toISOString(),
          updatedAt: new Date().toISOString(),
+      },
+      {
+         id: "11",
+         title: "Review API endpoints",
+         description: "Check all REST endpoints for consistency",
+         priority: "high",
+         tags: ["api"],
+         createdAt: new Date().toISOString(),
+         updatedAt: new Date().toISOString(),
+      },
+      // Yesterday
+      {
+         id: "12",
+         title: "Refactor authentication flow",
+         description: "Clean up the login and signup logic",
+         priority: "high",
+         tags: ["auth", "refactor"],
+         createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+         updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+         id: "13",
+         title: "Add error boundaries",
+         description: "Implement React error boundaries for better error handling",
+         priority: "medium",
+         tags: ["error-handling"],
+         createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+         updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      // 3 days ago
+      {
+         id: "14",
+         title: "Setup CI/CD pipeline",
+         description: "Configure GitHub Actions for automated testing and deployment",
+         priority: "medium",
+         tags: ["devops"],
+         createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+         updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+         id: "15",
+         title: "Database optimization",
+         description: "Add indexes and optimize slow queries",
+         priority: "low",
+         tags: ["database", "performance"],
+         createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+         updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      // A week ago
+      {
+         id: "16",
+         title: "Write unit tests",
+         description: "Increase test coverage to at least 80%",
+         priority: "medium",
+         tags: ["testing"],
+         createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+         updatedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+         id: "17",
+         title: "Mobile responsive design",
+         description: "Ensure all components work well on mobile devices",
+         priority: "high",
+         tags: ["mobile", "design"],
+         createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+         updatedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
       },
    ],
    todo: [

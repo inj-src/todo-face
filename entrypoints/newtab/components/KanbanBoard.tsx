@@ -17,21 +17,30 @@ const columns: { type: ColumnType; title: string }[] = [
 
 export function KanbanBoard({ board, onAddItem, onItemClick }: KanbanBoardProps) {
    return (
-      <div className="flex gap-px h-full bg-border overflow-x-auto">
-         {columns.map((column) => (
-            <div
-               key={column.type}
-               className="bg-background flex-1 min-w-[280px]"
-            >
-               <KanbanColumn
-                  type={column.type}
-                  title={column.title}
-                  items={board[column.type]}
-                  onAddItem={() => onAddItem?.(column.type)}
-                  onItemClick={onItemClick}
-               />
-            </div>
-         ))}
+      <div className="flex h-full bg-background overflow-x-auto">
+         {/* Left spacer - same bg as board */}
+         <div className="flex-1 min-w-0" />
+
+         {/* Columns container */}
+         <div className="flex">
+            {columns.map((column) => (
+               <div
+                  key={column.type}
+                  className="bg-background flex-1 min-w-[260px] max-w-[320px] border-r first:border-l border-border"
+               >
+                  <KanbanColumn
+                     type={column.type}
+                     title={column.title}
+                     items={board[column.type]}
+                     onAddItem={() => onAddItem?.(column.type)}
+                     onItemClick={onItemClick}
+                  />
+               </div>
+            ))}
+         </div>
+
+         {/* Right spacer - same bg as board */}
+         <div className="flex-1 min-w-0" />
       </div>
    );
 }

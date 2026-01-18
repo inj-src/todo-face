@@ -1,5 +1,6 @@
-import { Plus, MoreHorizontal } from "lucide-react";
+import { Plus, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { TodoItem } from "../types";
 import { TodoCard } from "./TodoCard";
 
@@ -37,6 +38,78 @@ const columnConfig: Record<ColumnType, { dotColor: string; accentClass: string }
    },
 };
 
+// Columns that should have date-based grouping
+const DATE_GROUPED_COLUMNS: ColumnType[] = ["backlogs", "completed", "discarded"];
+
+// Format date for display
+function formatGroupDate(dateString: string): string {
+   const date = new Date(dateString);
+   const today = new Date();
+   const yesterday = new Date(today);
+   yesterday.setDate(yesterday.getDate() - 1);
+
+   // Reset time for comparison
+   const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+   const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+   const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+
+   if (dateOnly.getTime() === todayOnly.getTime()) {
+      return "Today";
+   }
+   if (dateOnly.getTime() === yesterdayOnly.getTime()) {
+      return "Yesterday";
+   }
+
+   // Format as "Jan 18, 2026"
+   return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+   });
+}
+
+// Get the date key for grouping (YYYY-MM-DD format for sorting)
+function getDateKey(dateString: string): string {
+   const date = new Date(dateString);
+   return date.toISOString().split("T")[0];
+}
+
+// Group items by date
+function groupItemsByDate(
+   items: TodoItem[],
+   columnType: ColumnType
+): Map<string, { displayDate: string; items: TodoItem[] }> {
+   const groups = new Map<string, { displayDate: string; items: TodoItem[] }>();
+
+   items.forEach((item) => {
+      // Use updatedAt for completed/discarded, createdAt for backlogs
+      const dateField = columnType === "backlogs" ? item.createdAt : item.updatedAt;
+      const dateKey = getDateKey(dateField);
+      const displayDate = formatGroupDate(dateField);
+
+      if (!groups.has(dateKey)) {
+         groups.set(dateKey, { displayDate, items: [] });
+      }
+      groups.get(dateKey)!.items.push(item);
+   });
+
+   // Sort by date (most recent first)
+   return new Map(
+      [...groups.entries()].sort((a, b) => b[0].localeCompare(a[0]))
+   );
+}
+
+// Date separator component (just shows label, no lines)
+function DateSeparator({ date }: { date: string }) {
+   return (
+      <div className="mt-4 mb-2 text-center">
+         <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
+            {date}
+         </span>
+      </div>
+   );
+}
+
 export function KanbanColumn({
    type,
    title,
@@ -45,9 +118,13 @@ export function KanbanColumn({
    onItemClick,
 }: KanbanColumnProps) {
    const config = columnConfig[type];
+   const shouldGroupByDate = DATE_GROUPED_COLUMNS.includes(type);
+
+   // Group items by date if applicable
+   const groupedItems = shouldGroupByDate ? groupItemsByDate(items, type) : null;
 
    return (
-      <div className="flex flex-col h-full min-w-[280px] max-w-[320px] flex-1">
+      <div className="flex flex-col h-full">
          {/* Column Header */}
          <div
             className="flex items-center justify-between px-3 py-2 border-b border-dashed border-border"
@@ -71,23 +148,52 @@ export function KanbanColumn({
          </div>
 
          {/* Column Content */}
-         <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-2">
-            {items.map((item) => (
-               <TodoCard
-                  key={item.id}
-                  item={item}
-                  columnType={type}
-                  onClick={() => onItemClick?.(item)}
-               />
-            ))}
+         <ScrollArea className="flex-1 overflow-y-auto">
+            <div className="p-2">
+               {shouldGroupByDate && groupedItems ? (
+                  // Render grouped items with date separators
+                  <>
+                     {[...groupedItems.entries()].map(([dateKey, group], index) => (
+                        <div key={dateKey}>
+                           {/* Skip "Today" label, show labels for other dates */}
+                           {group.displayDate !== "Today" && (
+                              <DateSeparator date={group.displayDate} />
+                           )}
+                           <div className="space-y-2">
+                              {group.items.map((item) => (
+                                 <TodoCard
+                                    key={item.id}
+                                    item={item}
+                                    columnType={type}
+                                    onClick={() => onItemClick?.(item)}
+                                 />
+                              ))}
+                           </div>
+                        </div>
+                     ))}
+                  </>
+               ) : (
+                  // Render items without grouping
+                  <div className="space-y-2">
+                     {items.map((item) => (
+                        <TodoCard
+                           key={item.id}
+                           item={item}
+                           columnType={type}
+                           onClick={() => onItemClick?.(item)}
+                        />
+                     ))}
+                  </div>
+               )}
 
-            {/* Empty state */}
-            {items.length === 0 && (
-               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                  <span className="text-xs opacity-50">No items</span>
-               </div>
-            )}
-         </div>
+               {/* Empty state */}
+               {items.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                     <span className="text-xs opacity-50">No items</span>
+                  </div>
+               )}
+            </div>
+         </ScrollArea>
       </div>
    );
 }
