@@ -89,3 +89,40 @@ body,
 .time-display {
    font-variant-numeric: tabular-nums;
 }
+/* Kanban column styling */
+.kanban-column {
+   position: relative;
+}
+
+.kanban-column::after {
+   content: '';
+   position: absolute;
+   right: 0;
+   top: 0;
+   bottom: 0;
+   width: 1px;
+   background: var(--border);
+}
+
+.kanban-column:last-child::after {
+   display: none;
+}
+
+/* Line clamp for descriptions */
+.line-clamp-2 {
+   display: -webkit-box;
+   -webkit-line-clamp: 2;
+   -webkit-box-orient: vertical;
+   overflow: hidden;
+}
+
+/* Smooth scrollbar for columns */
+.kanban-column-content {
+   scrollbar-width: thin;
+   scrollbar-color: var(--border) transparent;
+}
+
+/* Card shadow on hover */
+.todo-card-hover:hover {
+   box-shadow: var(--shadow-sm);
+}
