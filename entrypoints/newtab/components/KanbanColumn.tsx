@@ -43,8 +43,7 @@ const columnConfig: Record<ColumnType, { dotColor: string; accentClass: string }
    },
 };
 
-// Columns that should have date-based grouping
-const DATE_GROUPED_COLUMNS: ColumnType[] = ["backlogs", "completed", "discarded"];
+// All columns use date-based grouping
 
 // Format date for display
 function formatGroupDate(dateString: string): string {
@@ -87,8 +86,9 @@ function groupItemsByDate(
    const groups = new Map<string, { displayDate: string; items: TodoWithStreak[] }>();
 
    items.forEach((item) => {
-      // Use updatedAt for completed/discarded, originalDate for backlogs
-      const dateField = columnType === "backlogs" ? item.originalDate : item.updatedAt;
+      // Use originalDate for todo/habits/backlogs, updatedAt for completed/discarded
+      const useUpdatedAt = columnType === "completed" || columnType === "discarded";
+      const dateField = useUpdatedAt ? item.updatedAt : item.originalDate;
       const dateKey = getDateKey(dateField);
       const displayDate = formatGroupDate(dateField);
 
@@ -123,10 +123,9 @@ export function KanbanColumn({
    onItemClick,
 }: KanbanColumnProps) {
    const config = columnConfig[type];
-   const shouldGroupByDate = DATE_GROUPED_COLUMNS.includes(type);
 
-   // Group items by date if applicable
-   const groupedItems = shouldGroupByDate ? groupItemsByDate(items, type) : null;
+   // Always group items by date
+   const groupedItems = groupItemsByDate(items, type);
 
    return (
       <div className="flex flex-col h-full">
@@ -164,41 +163,25 @@ export function KanbanColumn({
          {/* Column Content */}
          <ScrollArea className="flex-1 overflow-y-auto">
             <div className="p-2">
-               {shouldGroupByDate && groupedItems ? (
-                  // Render grouped items with date separators
-                  <>
-                     {[...groupedItems.entries()].map(([dateKey, group]) => (
-                        <div key={dateKey}>
-                           {/* Skip "Today" label, show labels for other dates */}
-                           {group.displayDate !== "Today" && (
-                              <DateSeparator date={group.displayDate} />
-                           )}
-                           <div className="space-y-2">
-                              {group.items.map((item) => (
-                                 <TodoCard
-                                    key={item.id}
-                                    item={item}
-                                    columnType={type}
-                                    onClick={() => onItemClick?.(item)}
-                                 />
-                              ))}
-                           </div>
-                        </div>
-                     ))}
-                  </>
-               ) : (
-                  // Render items without grouping
-                  <div className="space-y-2">
-                     {items.map((item) => (
-                        <TodoCard
-                           key={item.id}
-                           item={item}
-                           columnType={type}
-                           onClick={() => onItemClick?.(item)}
-                        />
-                     ))}
+               {/* Render grouped items with date separators */}
+               {[...groupedItems.entries()].map(([dateKey, group]) => (
+                  <div key={dateKey}>
+                     {/* Skip "Today" label, show labels for other dates */}
+                     {group.displayDate !== "Today" && (
+                        <DateSeparator date={group.displayDate} />
+                     )}
+                     <div className="space-y-2">
+                        {group.items.map((item) => (
+                           <TodoCard
+                              key={item.id}
+                              item={item}
+                              columnType={type}
+                              onClick={() => onItemClick?.(item)}
+                           />
+                        ))}
+                     </div>
                   </div>
-               )}
+               ))}
 
                {/* Empty state */}
                {items.length === 0 && (

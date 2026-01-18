@@ -36,8 +36,6 @@ function getActionConfig(columnType: ColumnType): { label: string; icon: typeof 
 export function TodoCard({ item, columnType, onClick }: TodoCardProps) {
    const { completeTodo, moveToTodo, restoreTodo, logHabitCompletion } = useTodoStore();
 
-   // Show date on all columns except "todo" and "habits"
-   const showDate = columnType !== "todo" && columnType !== "habits";
    const actionConfig = getActionConfig(columnType);
    const ActionIcon = actionConfig.icon;
 
@@ -102,31 +100,21 @@ export function TodoCard({ item, columnType, onClick }: TodoCardProps) {
             </p>
          )}
 
-         {/* Card Footer - Date & Streak */}
-         {((showDate && item.dueDate) || item.streak !== undefined) && (
-            <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
-               {showDate && item.dueDate && (
-                  <span className="text-[10px] text-muted-foreground time-display">
-                     {new Date(item.dueDate).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                     })}
+         {/* Card Footer - Streak */}
+         {item.streak !== undefined && item.streak > 0 && (
+            <div className="flex items-center justify-end mt-2 pt-2 border-t border-border/50">
+               <div
+                  className={cn(
+                     "flex items-center gap-1 px-1.5 py-0.5 bg-chart-2/5 border border-chart-2/20",
+                     "text-chart-2 shadow-[1px_1px_0px_--theme(--color-chart-2/0.2)]"
+                  )}
+                  title={`${item.streak} day streak`}
+               >
+                  <Flame size={12} className="fill-chart-2/20 animate-pulse" />
+                  <span className="text-[10px] font-bold tracking-tighter tabular-nums">
+                     {item.streak} DAYS
                   </span>
-               )}
-               {item.streak !== undefined && item.streak > 0 && (
-                  <div
-                     className={cn(
-                        "flex items-center gap-1 px-1.5 py-0.5 bg-chart-2/5 border border-chart-2/20",
-                        "text-chart-2 shadow-[1px_1px_0px_--theme(--color-chart-2/0.2)]"
-                     )}
-                     title={`${item.streak} day streak`}
-                  >
-                     <Flame size={12} className="fill-chart-2/20 animate-pulse" />
-                     <span className="text-[10px] font-bold tracking-tighter tabular-nums">
-                        {item.streak} DAYS
-                     </span>
-                  </div>
-               )}
+               </div>
             </div>
          )}
 
