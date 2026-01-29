@@ -1,4 +1,5 @@
 import { KanbanColumn, type ColumnType } from "./KanbanColumn";
+import { CalendarColumn } from "./CalendarColumn";
 import type { Todo } from "../store/types";
 
 // Board data structure
@@ -20,12 +21,11 @@ interface KanbanBoardProps {
    onItemClick?: (item: TodoWithStreak) => void;
 }
 
+// Only show backlogs, todo, habits columns (completed/discarded moved to calendar)
 const columns: { type: ColumnType; title: string }[] = [
    { type: "backlogs", title: "Backlogs" },
    { type: "todo", title: "To Do" },
    { type: "habits", title: "Habits" },
-   { type: "completed", title: "Completed" },
-   { type: "discarded", title: "Discarded" },
 ];
 
 export function KanbanBoard({ board, onAddItem, onItemClick }: KanbanBoardProps) {
@@ -50,6 +50,14 @@ export function KanbanBoard({ board, onAddItem, onItemClick }: KanbanBoardProps)
                   />
                </div>
             ))}
+
+            {/* Calendar Column - replaces Completed and Discarded, wider than other columns */}
+            <div className="bg-background min-w-[480px] max-w-[560px] border-r border-border">
+               <CalendarColumn
+                  completed={board.completed}
+                  backlogs={board.backlogs}
+               />
+            </div>
          </div>
 
          {/* Right spacer - same bg as board */}

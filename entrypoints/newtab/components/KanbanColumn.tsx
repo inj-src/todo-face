@@ -98,6 +98,17 @@ function groupItemsByDate(
       groups.get(dateKey)!.items.push(item);
    });
 
+   // For todo and backlogs columns, sort completed items to the bottom within each group
+   if (columnType === "todo" || columnType === "backlogs") {
+      groups.forEach((group) => {
+         group.items.sort((a, b) => {
+            const aCompleted = a.status === "completed" ? 1 : 0;
+            const bCompleted = b.status === "completed" ? 1 : 0;
+            return aCompleted - bCompleted;
+         });
+      });
+   }
+
    // Sort by date (most recent first)
    return new Map(
       [...groups.entries()].sort((a, b) => b[0].localeCompare(a[0]))
