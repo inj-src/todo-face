@@ -20,6 +20,7 @@ import {
    PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { formatDateToLocal } from "../store-v2/types";
 
 interface CreateTodoModalProps {
    open: boolean;
@@ -144,7 +145,7 @@ export function CreateTodoModal({
       onSubmit({
          title: title.trim(),
          description: description.trim() || undefined,
-         dueDate: dueDate.toISOString(),
+         dueDate: formatDateToLocal(dueDate),
       });
 
       resetForm();

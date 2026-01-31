@@ -2,22 +2,18 @@ import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import type { Todo } from "../store/types";
+import type { Todo, Habit } from "../store-v2/types";
 import { TodoCard } from "./TodoCard";
 
-export type ColumnType = "backlogs" | "todo" | "habits" | "completed" | "discarded";
-
-// Extended todo with optional streak for habits
-interface TodoWithStreak extends Todo {
-   streak?: number;
-}
+export type ColumnType = "backlogs" | "todo" | "habits";
 
 interface KanbanColumnProps {
    type: ColumnType;
    title: string;
-   items: TodoWithStreak[];
+   items: Todo[];
+   habits?: Habit[];
    onAddItem?: () => void;
-   onItemClick?: (item: TodoWithStreak) => void;
+   onItemClick?: (item: Todo) => void;
 }
 
 const columnConfig: Record<ColumnType, { dotColor: string; accentClass: string }> = {
@@ -33,17 +29,7 @@ const columnConfig: Record<ColumnType, { dotColor: string; accentClass: string }
       dotColor: "bg-purple-400",
       accentClass: "border-t-purple-400",
    },
-   completed: {
-      dotColor: "bg-green-400",
-      accentClass: "border-t-green-400",
-   },
-   discarded: {
-      dotColor: "bg-red-400",
-      accentClass: "border-t-red-400",
-   },
 };
-
-// All columns use date-based grouping
 
 // Format date for display
 function formatGroupDate(dateString: string): string {
@@ -72,25 +58,16 @@ function formatGroupDate(dateString: string): string {
    });
 }
 
-// Get the date key for grouping (YYYY-MM-DD format for sorting)
-function getDateKey(dateString: string): string {
-   const date = new Date(dateString);
-   return date.toISOString().split("T")[0];
-}
-
 // Group items by date
 function groupItemsByDate(
-   items: TodoWithStreak[],
+   items: Todo[],
    columnType: ColumnType
-): Map<string, { displayDate: string; items: TodoWithStreak[] }> {
-   const groups = new Map<string, { displayDate: string; items: TodoWithStreak[] }>();
+): Map<string, { displayDate: string; items: Todo[] }> {
+   const groups = new Map<string, { displayDate: string; items: Todo[] }>();
 
    items.forEach((item) => {
-      // Use originalDate for todo/habits/backlogs, updatedAt for completed/discarded
-      const useUpdatedAt = columnType === "completed" || columnType === "discarded";
-      const dateField = useUpdatedAt ? item.updatedAt : item.originalDate;
-      const dateKey = getDateKey(dateField);
-      const displayDate = formatGroupDate(dateField);
+      const dateKey = item.dueDate; // Already in YYYY-MM-DD format
+      const displayDate = formatGroupDate(dateKey);
 
       if (!groups.has(dateKey)) {
          groups.set(dateKey, { displayDate, items: [] });
@@ -98,28 +75,33 @@ function groupItemsByDate(
       groups.get(dateKey)!.items.push(item);
    });
 
-   // For todo and backlogs columns, sort completed items to the bottom within each group
-   if (columnType === "todo" || columnType === "backlogs") {
-      groups.forEach((group) => {
-         group.items.sort((a, b) => {
-            const aCompleted = a.status === "completed" ? 1 : 0;
-            const bCompleted = b.status === "completed" ? 1 : 0;
-            return aCompleted - bCompleted;
-         });
+   // Sort completed items to the bottom within each group
+   groups.forEach((group) => {
+      group.items.sort((a, b) => {
+         const aCompleted = a.completed ? 1 : 0;
+         const bCompleted = b.completed ? 1 : 0;
+         return aCompleted - bCompleted;
       });
-   }
+   });
 
-   // Sort by date (most recent first)
-   return new Map(
-      [...groups.entries()].sort((a, b) => b[0].localeCompare(a[0]))
-   );
+   // Sort by date:
+   // - Backlog: newest first (descending) to show most recent missed items first
+   // - Todo/Habits: closest date first (ascending) - today first, then tomorrow, etc.
+   const sortedEntries = [...groups.entries()].sort((a, b) => {
+      if (columnType === "backlogs") {
+         return b[0].localeCompare(a[0]); // Descending
+      }
+      return a[0].localeCompare(b[0]); // Ascending (closest first)
+   });
+
+   return new Map(sortedEntries);
 }
 
 // Date separator component
 function DateSeparator({ date }: { date: string }) {
    return (
       <div className="mt-4 mb-2 text-center">
-         <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
+         <span className="text-[10px] font-mono font-medium text-muted-foreground uppercase tracking-widest">
             {date}
          </span>
       </div>
@@ -130,12 +112,13 @@ export function KanbanColumn({
    type,
    title,
    items,
+   habits = [],
    onAddItem,
    onItemClick,
 }: KanbanColumnProps) {
    const config = columnConfig[type];
 
-   // Always group items by date
+   // Group items by date
    const groupedItems = groupItemsByDate(items, type);
 
    return (
@@ -175,10 +158,10 @@ export function KanbanColumn({
          <ScrollArea className="flex-1 overflow-y-auto">
             <div className="p-2">
                {/* Render grouped items with date separators */}
-               {[...groupedItems.entries()].map(([dateKey, group]) => (
+               {[...groupedItems.entries()].map(([dateKey, group], index) => (
                   <div key={dateKey}>
-                     {/* Skip "Today" label, show labels for other dates */}
-                     {group.displayDate !== "Today" && (
+                     {/* Show date label for all dates (skip first group to save space if only one group) */}
+                     {(groupedItems.size > 1 || index === 0) && (
                         <DateSeparator date={group.displayDate} />
                      )}
                      <div className="space-y-2">
@@ -188,6 +171,7 @@ export function KanbanColumn({
                               item={item}
                               columnType={type}
                               onClick={() => onItemClick?.(item)}
+                              habitData={item.habitId ? habits.find((h) => h.id === item.habitId) : undefined}
                            />
                         ))}
                      </div>

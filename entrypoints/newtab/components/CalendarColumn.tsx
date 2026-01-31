@@ -3,24 +3,16 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import type { Todo } from "../store/types";
-
-interface TodoWithStreak extends Todo {
-   streak?: number;
-}
+import type { Todo } from "../store-v2/types";
 
 interface CalendarColumnProps {
-   completed: TodoWithStreak[];
-   backlogs: TodoWithStreak[];
+   completed: Todo[];
+   backlogs: Todo[];
+   pending: Todo[];
+   habits: Todo[];
 }
 
 type ViewMode = "weekly" | "monthly";
-
-// Get the date key for grouping (YYYY-MM-DD format)
-function getDateKey(dateString: string): string {
-   const date = new Date(dateString);
-   return date.toISOString().split("T")[0];
-}
 
 // Get week dates (Sunday to Saturday)
 function getWeekDates(referenceDate: Date): Date[] {
@@ -56,11 +48,6 @@ function getMonthDates(year: number, month: number): (Date | null)[] {
    return dates;
 }
 
-// Get month/year header
-function getMonthYearLabel(date: Date): string {
-   return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-}
-
 // Tab button component
 function TabButton({
    active,
@@ -75,7 +62,7 @@ function TabButton({
       <button
          onClick={onClick}
          className={cn(
-            "px-2 py-1 text-[11px] font-medium transition-all duration-200 cursor-pointer rounded",
+            "px-2 py-1 text-[11px] font-medium duration-200 cursor-pointer ",
             active
                ? "bg-primary/15 text-primary border border-primary/30"
                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
@@ -91,14 +78,18 @@ function WeeklyDayBox({
    date,
    completedTodos,
    backlogTodos,
+   pendingTodos,
+   habitTodos,
    isToday,
 }: {
    date: Date;
-   completedTodos: TodoWithStreak[];
-   backlogTodos: TodoWithStreak[];
+      completedTodos: Todo[];
+      backlogTodos: Todo[];
+      pendingTodos: Todo[];
+      habitTodos: Todo[];
    isToday: boolean;
 }) {
-   const hasItems = completedTodos.length > 0 || backlogTodos.length > 0;
+   const hasItems = completedTodos.length > 0 || backlogTodos.length > 0 || pendingTodos.length > 0 || habitTodos.length > 0;
    const dayOfMonth = date.getDate();
    const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
 
@@ -106,7 +97,7 @@ function WeeklyDayBox({
       <div
          className={cn(
             "min-h-[80px] p-2 border border-border/50 transition-all duration-200",
-            isToday && "ring-2 ring-primary/30 bg-primary/5",
+            isToday && "border-2 border-primary/30 bg-primary/5",
             !hasItems && "opacity-60"
          )}
       >
@@ -131,7 +122,7 @@ function WeeklyDayBox({
          </div>
 
          {/* Todo items */}
-         <div className="space-y-1">
+         <div className="space-y-1 columns-2">
             {completedTodos.map((todo) => (
                <div
                   key={todo.id}
@@ -140,7 +131,7 @@ function WeeklyDayBox({
                      "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
                      "shadow-[0_1px_2px_rgba(16,185,129,0.1)]"
                   )}
-                  title={todo.title}
+                  title={`${todo.title} ${todo.description ? `\n\n ${todo.description}` : ""}`}
                >
                   {todo.title}
                </div>
@@ -153,7 +144,37 @@ function WeeklyDayBox({
                      "bg-red-500/15 text-red-400 border border-red-500/30",
                      "shadow-[0_1px_2px_rgba(239,68,68,0.1)]"
                   )}
-                  title={todo.title}
+                  title={`${todo.title} ${todo.description ? `\n\n ${todo.description}` : ""}`}
+               >
+                  {todo.title}
+               </div>
+            ))}
+            {pendingTodos.map((todo) => (
+               <div
+                  key={todo.id}
+                  className={cn(
+                     "px-1.5 py-0.5 text-[10px] font-medium truncate",
+                     todo.completed
+                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                        : "bg-zinc-500/15 text-zinc-400 border border-zinc-500/30",
+                     "shadow-[0_1px_2px_rgba(113,113,122,0.1)]"
+                  )}
+                  title={`${todo.title} ${todo.description ? `\n\n ${todo.description}` : ""}`}
+               >
+                  {todo.title}
+               </div>
+            ))}
+            {habitTodos.map((todo) => (
+               <div
+                  key={todo.id}
+                  className={cn(
+                     "px-1.5 py-0.5 text-[10px] font-medium truncate",
+                     todo.completed
+                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                        : "bg-violet-500/10 text-violet-400/70 border border-violet-500/20",
+                     "shadow-[0_1px_2px_rgba(139,92,246,0.1)]"
+                  )}
+                  title={`${todo.title} ${todo.description ? `\n\n ${todo.description}` : ""}`}
                >
                   {todo.title}
                </div>
@@ -168,25 +189,29 @@ function MonthlyDayBox({
    date,
    completedTodos,
    backlogTodos,
+   pendingTodos,
+   habitTodos,
    isToday,
 }: {
    date: Date | null;
-   completedTodos: TodoWithStreak[];
-   backlogTodos: TodoWithStreak[];
+      completedTodos: Todo[];
+      backlogTodos: Todo[];
+      pendingTodos: Todo[];
+      habitTodos: Todo[];
    isToday: boolean;
 }) {
    if (!date) {
       return <div className="min-h-[60px] bg-transparent" />;
    }
 
-   const hasItems = completedTodos.length > 0 || backlogTodos.length > 0;
+   const hasItems = completedTodos.length > 0 || backlogTodos.length > 0 || pendingTodos.length > 0 || habitTodos.length > 0;
    const dayOfMonth = date.getDate();
 
    return (
       <div
          className={cn(
             "min-h-[60px] p-1.5 border border-border/50 transition-all duration-200",
-            isToday && "ring-2 ring-primary/30 bg-primary/5",
+            isToday && "border-2 border-primary/30 bg-primary/5",
             !hasItems && "opacity-50"
          )}
       >
@@ -202,67 +227,109 @@ function MonthlyDayBox({
             </span>
          </div>
 
-         {/* Todo items */}
+         {/* Todo items - show all */}
          <div className="space-y-0.5">
-            {completedTodos.slice(0, 2).map((todo) => (
+            {completedTodos.map((todo) => (
                <div
                   key={todo.id}
                   className={cn(
                      "px-1 py-0.5 text-[9px] font-medium truncate",
                      "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                   )}
-                  title={todo.title}
+                  title={`${todo.title} ${todo.description ? `\n\n ${todo.description}` : ""}`}
                >
                   {todo.title}
                </div>
             ))}
-            {backlogTodos.slice(0, 2).map((todo) => (
+            {backlogTodos.map((todo) => (
                <div
                   key={todo.id}
                   className={cn(
                      "px-1 py-0.5 text-[9px] font-medium truncate",
                      "bg-red-500/15 text-red-400 border border-red-500/30"
                   )}
-                  title={todo.title}
+                  title={`${todo.title} ${todo.description ? `\n\n ${todo.description}` : ""}`}
                >
                   {todo.title}
                </div>
             ))}
-            {/* Show overflow indicator */}
-            {(completedTodos.length > 2 || backlogTodos.length > 2) && (
-               <div className="text-[8px] text-muted-foreground text-center">
-                  +{Math.max(0, completedTodos.length - 2) + Math.max(0, backlogTodos.length - 2)} more
+            {pendingTodos.map((todo) => (
+               <div
+                  key={todo.id}
+                  className={cn(
+                     "px-1 py-0.5 text-[9px] font-medium truncate",
+                     todo.completed
+                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                        : "bg-zinc-500/15 text-zinc-400 border border-zinc-500/30"
+                  )}
+                  title={`${todo.title} ${todo.description ? `\n\n ${todo.description}` : ""}`}
+               >
+                  {todo.title}
                </div>
-            )}
+            ))}
+            {habitTodos.map((todo) => (
+               <div
+                  key={todo.id}
+                  className={cn(
+                     "px-1 py-0.5 text-[9px] font-medium truncate",
+                     todo.completed
+                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                        : "bg-violet-500/10 text-violet-400/70 border border-violet-500/20"
+                  )}
+                  title={`${todo.title} ${todo.description ? `\n\n ${todo.description}` : ""}`}
+               >
+                  {todo.title}
+               </div>
+            ))}
          </div>
       </div>
    );
 }
 
-export function CalendarColumn({ completed, backlogs }: CalendarColumnProps) {
+
+
+export function CalendarColumn({ completed, backlogs, pending, habits }: CalendarColumnProps) {
    const [viewMode, setViewMode] = useState<ViewMode>("weekly");
    const [referenceDate, setReferenceDate] = useState(new Date());
 
    const today = new Date();
    const todayKey = today.toISOString().split("T")[0];
 
-   // Group todos by date
-   const completedByDate = new Map<string, TodoWithStreak[]>();
+   // Group todos by date using dueDate (already in YYYY-MM-DD format)
+   const completedByDate = new Map<string, Todo[]>();
    completed.forEach((todo) => {
-      const dateKey = getDateKey(todo.updatedAt);
+      const dateKey = todo.dueDate;
       if (!completedByDate.has(dateKey)) {
          completedByDate.set(dateKey, []);
       }
       completedByDate.get(dateKey)!.push(todo);
    });
 
-   const backlogsByDate = new Map<string, TodoWithStreak[]>();
+   const backlogsByDate = new Map<string, Todo[]>();
    backlogs.forEach((todo) => {
-      const dateKey = getDateKey(todo.updatedAt);
+      const dateKey = todo.dueDate;
       if (!backlogsByDate.has(dateKey)) {
          backlogsByDate.set(dateKey, []);
       }
       backlogsByDate.get(dateKey)!.push(todo);
+   });
+
+   const pendingByDate = new Map<string, Todo[]>();
+   pending.forEach((todo) => {
+      const dateKey = todo.dueDate;
+      if (!pendingByDate.has(dateKey)) {
+         pendingByDate.set(dateKey, []);
+      }
+      pendingByDate.get(dateKey)!.push(todo);
+   });
+
+   const habitsByDate = new Map<string, Todo[]>();
+   habits.forEach((todo) => {
+      const dateKey = todo.dueDate;
+      if (!habitsByDate.has(dateKey)) {
+         habitsByDate.set(dateKey, []);
+      }
+      habitsByDate.get(dateKey)!.push(todo);
    });
 
    // Navigation handlers
@@ -298,8 +365,9 @@ export function CalendarColumn({ completed, backlogs }: CalendarColumnProps) {
 
    return (
       <div className="flex flex-col h-full">
-         {/* Column Header with inline tabs */}
-         <div className="flex items-center justify-between px-3 py-2 border-b border-dashed border-border">
+         {/* Column Header with inline tabs and navigation */}
+         <div className="flex items-center justify-between px-3 py-[9px] border-b border-dashed border-border">
+            {/* Left side: Title and view mode tabs */}
             <div className="flex items-center gap-3">
                <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-indigo-400" />
@@ -307,7 +375,7 @@ export function CalendarColumn({ completed, backlogs }: CalendarColumnProps) {
                      Calendar
                   </span>
                </div>
-               {/* Inline View Mode Tabs */}
+               {/* View Mode Tabs */}
                <div className="flex items-center gap-1">
                   <TabButton
                      active={viewMode === "weekly"}
@@ -323,44 +391,45 @@ export function CalendarColumn({ completed, backlogs }: CalendarColumnProps) {
                   </TabButton>
                </div>
             </div>
-         </div>
 
-         {/* Navigation */}
-         <div className="flex items-center justify-between px-3 py-2 border-b border-border/30">
-            <Button
-               variant="ghost"
-               size="icon-sm"
-               onClick={handlePrev}
-               className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-               <ChevronLeft size={14} />
-            </Button>
-            <div className="flex items-center gap-2">
-               <span className="text-xs font-medium text-foreground">
+            {/* Right side: Navigation */}
+            <div className="flex items-center gap-1">
+               <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={handlePrev}
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+               >
+                  <ChevronLeft size={14} />
+               </Button>
+               <span className="text-xs font-medium text-foreground min-w-[90px] text-center">
                   {viewMode === "weekly"
                      ? `Week of ${referenceDate.toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
                      })}`
-                     : getMonthYearLabel(referenceDate)}
+                     : referenceDate.toLocaleDateString("en-US", {
+                        month: "short",
+                        year: "numeric",
+                     })}
                </span>
+               <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={handleNext}
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+               >
+                  <ChevronRight size={14} />
+               </Button>
                <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleToday}
-                  className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground cursor-pointer ml-1"
                >
                   Today
                </Button>
             </div>
-            <Button
-               variant="ghost"
-               size="icon-sm"
-               onClick={handleNext}
-               className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-               <ChevronRight size={14} />
-            </Button>
          </div>
 
          {/* Calendar Grid */}
@@ -378,6 +447,8 @@ export function CalendarColumn({ completed, backlogs }: CalendarColumnProps) {
                               date={date}
                               completedTodos={completedByDate.get(dateKey) || []}
                               backlogTodos={backlogsByDate.get(dateKey) || []}
+                              pendingTodos={pendingByDate.get(dateKey) || []}
+                              habitTodos={habitsByDate.get(dateKey) || []}
                               isToday={isCurrentDay}
                            />
                         );
@@ -403,7 +474,7 @@ export function CalendarColumn({ completed, backlogs }: CalendarColumnProps) {
                      <div className="grid grid-cols-7 gap-px">
                         {dates.map((date, index) => {
                            if (!date) {
-                              return <MonthlyDayBox key={`empty-${index}`} date={null} completedTodos={[]} backlogTodos={[]} isToday={false} />;
+                              return <MonthlyDayBox key={`empty-${index}`} date={null} completedTodos={[]} backlogTodos={[]} pendingTodos={[]} habitTodos={[]} isToday={false} />;
                            }
                            const dateKey = date.toISOString().split("T")[0];
                            const isCurrentDay = dateKey === todayKey;
@@ -413,6 +484,8 @@ export function CalendarColumn({ completed, backlogs }: CalendarColumnProps) {
                                  date={date}
                                  completedTodos={completedByDate.get(dateKey) || []}
                                  backlogTodos={backlogsByDate.get(dateKey) || []}
+                                 pendingTodos={pendingByDate.get(dateKey) || []}
+                                 habitTodos={habitsByDate.get(dateKey) || []}
                                  isToday={isCurrentDay}
                               />
                            );
@@ -420,18 +493,6 @@ export function CalendarColumn({ completed, backlogs }: CalendarColumnProps) {
                      </div>
                   </div>
                )}
-
-               {/* Legend */}
-               <div className="flex items-center justify-center gap-4 mt-4 pt-3 border-t border-border/30">
-                  <div className="flex items-center gap-1.5">
-                     <div className="w-2 h-2 bg-emerald-500/60 border border-emerald-500/50" />
-                     <span className="text-[10px] text-muted-foreground">Completed</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                     <div className="w-2 h-2 bg-red-500/60 border border-red-500/50" />
-                     <span className="text-[10px] text-muted-foreground">Backlog</span>
-                  </div>
-               </div>
             </div>
          </ScrollArea>
       </div>
