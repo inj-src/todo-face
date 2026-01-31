@@ -80,14 +80,14 @@ export const useTodoStore = create<StoreState>()(
             return result;
          },
 
-         // Get completed todos: completed == true
+         // Get completed todos: completed == true, isHabit == false (habit completions shown in habits column)
          getCompletedTodos: () => {
             const { todos } = get();
             const result: Todo[] = [];
 
             Object.values(todos).forEach((todoList) => {
                todoList.forEach((todo) => {
-                  if (todo.completed) {
+                  if (todo.completed && !todo.isHabit) {
                      result.push(todo);
                   }
                });

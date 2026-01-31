@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import type { Todo } from "../store-v2/types";
+import { formatDateToLocal } from "../store-v2/types";
 
 interface CalendarColumnProps {
    completed: Todo[];
@@ -64,7 +65,7 @@ function TabButton({
          className={cn(
             "px-2 py-1 text-[11px] font-medium duration-200 cursor-pointer ",
             active
-               ? "bg-primary/15 text-primary border border-primary/30"
+               ? "bg-primary/15 text-primary ring ring-primary/30"
                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
          )}
       >
@@ -293,7 +294,7 @@ export function CalendarColumn({ completed, backlogs, pending, habits }: Calenda
    const [referenceDate, setReferenceDate] = useState(new Date());
 
    const today = new Date();
-   const todayKey = today.toISOString().split("T")[0];
+   const todayKey = formatDateToLocal(today);
 
    // Group todos by date using dueDate (already in YYYY-MM-DD format)
    const completedByDate = new Map<string, Todo[]>();
@@ -439,7 +440,7 @@ export function CalendarColumn({ completed, backlogs, pending, habits }: Calenda
                   /* Weekly view - vertical stack */
                   <div className="space-y-1">
                      {(dates as Date[]).map((date) => {
-                        const dateKey = date.toISOString().split("T")[0];
+                        const dateKey = formatDateToLocal(date);
                         const isCurrentDay = dateKey === todayKey;
                         return (
                            <WeeklyDayBox
@@ -476,7 +477,7 @@ export function CalendarColumn({ completed, backlogs, pending, habits }: Calenda
                            if (!date) {
                               return <MonthlyDayBox key={`empty-${index}`} date={null} completedTodos={[]} backlogTodos={[]} pendingTodos={[]} habitTodos={[]} isToday={false} />;
                            }
-                           const dateKey = date.toISOString().split("T")[0];
+                           const dateKey = formatDateToLocal(date);
                            const isCurrentDay = dateKey === todayKey;
                            return (
                               <MonthlyDayBox

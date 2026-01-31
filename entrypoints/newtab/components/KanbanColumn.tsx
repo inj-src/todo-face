@@ -37,14 +37,20 @@ function formatGroupDate(dateString: string): string {
    const today = new Date();
    const yesterday = new Date(today);
    yesterday.setDate(yesterday.getDate() - 1);
+   const tomorrow = new Date(today);
+   tomorrow.setDate(tomorrow.getDate() + 1);
 
    // Reset time for comparison
    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
    const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+   const tomorrowOnly = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
 
    if (dateOnly.getTime() === todayOnly.getTime()) {
       return "Today";
+   }
+   if (dateOnly.getTime() === tomorrowOnly.getTime()) {
+      return "Tomorrow";
    }
    if (dateOnly.getTime() === yesterdayOnly.getTime()) {
       return "Yesterday";
@@ -156,7 +162,7 @@ export function KanbanColumn({
 
          {/* Column Content */}
          <ScrollArea className="flex-1 overflow-y-auto">
-            <div className="p-2">
+            <div className="p-2 pb-8">
                {/* Render grouped items with date separators */}
                {[...groupedItems.entries()].map(([dateKey, group], index) => (
                   <div key={dateKey}>

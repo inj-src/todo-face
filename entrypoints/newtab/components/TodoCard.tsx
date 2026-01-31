@@ -99,7 +99,7 @@ export function TodoCard({ item, columnType, onClick, habitData }: TodoCardProps
             onClick={onClick}
             className={cn(
                "group relative bg-card border border-border p-3 cursor-pointer",
-               "hover:bg-accent/50 transition-colors duration-150",
+               !isCompleted && "hover:bg-accent/50 transition-colors duration-150",
                isCompleted && "opacity-60 bg-green-950/20 border-green-800/30"
             )}
          >
